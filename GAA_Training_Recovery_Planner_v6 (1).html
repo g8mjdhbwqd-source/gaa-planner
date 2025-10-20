@@ -1,0 +1,347 @@
+
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GAA Training & Recovery Planner</title>
+  <meta name="description" content="Plan weekly GAA sessions, log RPE, track profile metrics, and check readiness before match day." />
+  <style>
+    :root{
+      --bg:#f7f7fb; --fg:#0f1220; --muted:#5b6275; --card:#ffffff; --border:#e7e7ef;
+      --accent:#006644; /* change to your club colour if you like */
+      --ok:#1b8c3e; --warn:#b04a1e;
+      --radius:16px; --shadow:0 8px 28px rgba(0,0,0,.08);
+    }
+    [data-theme="dark"]{
+      --bg:#0c0f17; --fg:#f1f5ff; --muted:#9aa3b2; --card:#151a24; --border:#252b38;
+      --shadow:none;
+    }
+    *{ box-sizing:border-box; }
+    body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; background:var(--bg); color:var(--fg); }
+    header, footer{ padding:24px; text-align:center; }
+    .container{ max-width:1000px; margin:0 auto; padding:24px; }
+    .card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:18px; border:1px solid var(--border); }
+    .hero{ display:grid; grid-template-columns:1.2fr .8fr; gap:24px; align-items:center; }
+    h1{ font-size:2rem; margin:.2rem 0 .5rem; }
+    h2{ margin:.2rem 0 .8rem; }
+    p.muted{ color:var(--muted); }
+    .btn{ display:inline-block; border:1px solid transparent; border-radius:999px; padding:.8rem 1.1rem; background:var(--accent); color:#fff; cursor:pointer; }
+    .btn.secondary{ background:transparent; color:var(--fg); border-color:var(--border); }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:16px; }
+    label{ display:block; margin:.5rem 0 .25rem; }
+    input, select, textarea{ width:100%; padding:.6rem .7rem; border:1px solid var(--border); background:transparent; color:var(--fg);
+      border-radius:10px; }
+    img{ width:100%; border-radius:16px; object-fit:cover; }
+    .section-title{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .badge{ font-size:.85rem; color:#fff; background:var(--accent); padding:.2rem .6rem; border-radius:999px; }
+    .status.ok{ color:var(--ok); }
+    .status.warn{ color:var(--warn); }
+    .small{ font-size:.9rem; color:var(--muted); }
+    .row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .toolbar{ display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    @media (max-width: 860px){ .hero{ grid-template-columns:1fr; } }
+    a{ color:var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>GAA Training & Recovery Planner</h1>
+    <p class="muted">Plan sessions, log RPE, track metrics, and check readiness in seconds.</p>
+    <div class="toolbar" role="toolbar" aria-label="Quick actions">
+      <button class="btn secondary" id="themeBtn" aria-pressed="false">Toggle dark mode</button>
+      <button class="btn secondary" id="exportBtn">Export week to CSV</button>
+      <button class="btn secondary" id="resetBtn">Reset all</button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- HERO IMAGE -->
+    <section class="card hero">
+      <div>
+        <h2>Dial in your week</h2>
+        <p>Set your sessions (ball work, S&amp;C, fitness), log your RPE each day, and get a readiness signal based on sleep, soreness, and mood.</p>
+        <button class="btn" onclick="document.getElementById('profile').scrollIntoView({behavior:'smooth'})">Start with your profile</button>
+        <p class="small">Tip: Your last entries auto-save in your browser.</p>
+      </div>
+      <div>
+        <img alt="GAA player training" src="https://i.postimg.cc/Y0LttGyR/2bbc5e45-64bf-4886-96ac-ac8e2c52879e.png" />
+      </div>
+    </section>
+
+    <!-- PLAYER PROFILE -->
+    <section id="profile" class="card">
+      <div class="section-title">
+        <h3>Player Profile</h3>
+        <span class="badge">You</span>
+      </div>
+      <div class="grid">
+        <div>
+          <label for="p_name">Name (optional)</label>
+          <input id="p_name" placeholder="e.g., John Murphy" />
+        </div>
+        <div>
+          <label for="p_sex">Sex</label>
+          <select id="p_sex">
+            <option value="">Prefer not to say</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="p_height">Height (cm)</label>
+          <input id="p_height" type="number" min="100" max="230" step="1" placeholder="e.g., 178" />
+        </div>
+        <div>
+          <label for="p_weight">Weight (kg)</label>
+          <input id="p_weight" type="number" min="30" max="200" step=".1" placeholder="e.g., 71.0" />
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn" id="saveProfileBtn">Save profile</button>
+        <span class="small" id="profilesaved"></span>
+      </div>
+      <p class="small" id="bmi_out"></p>
+    </section>
+
+    <!-- WEEKLY PLANNER -->
+    <section id="planner" class="card">
+      <div class="section-title">
+        <h3>Weekly Session Planner</h3>
+        <span class="badge">Plan</span>
+      </div>
+      <div class="grid">
+        <div><label>Tuesday session</label><select id="tue">
+          <option>Ball work</option><option selected>Match</option><option>Strength & Conditioning</option><option>Fitness</option>
+        </select></div>
+        <div><label>Thursday session</label><select id="thu">
+          <option>Ball work</option><option selected>Strength & Conditioning</option><option>Fitness</option><option>Match</option>
+        </select></div>
+        <div><label>Sunday session</label><select id="sun">
+          <option>Ball work</option><option selected>Fitness</option><option>Strength & Conditioning</option><option>Match</option>
+        </select></div>
+        <div><label>Custom day</label><input id="custom" placeholder="e.g., Saturday gym"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn" onclick="savePlan()">Save plan</button>
+        <span class="small" id="plansaved"></span>
+      </div>
+      <div style="margin-top:20px;">
+        <img alt="Strength and conditioning gym" src="https://i.postimg.cc/DzfJn6Qc/8b3c118e-5280-48f8-bd82-a9e4e48a20a1.png" />
+      </div>
+    </section>
+
+    <!-- RPE LOG -->
+    <section class="card">
+      <div class="section-title">
+        <h3>Daily RPE Log (0–10)</h3>
+        <span class="badge">Log</span>
+      </div>
+      <div class="grid">
+        <div><label>Mon</label><input id="rpe_mon" type="number" min="0" max="10"></div>
+        <div><label>Tue</label><input id="rpe_tue" type="number" min="0" max="10"></div>
+        <div><label>Wed</label><input id="rpe_wed" type="number" min="0" max="10"></div>
+        <div><label>Thu</label><input id="rpe_thu" type="number" min="0" max="10"></div>
+        <div><label>Fri</label><input id="rpe_fri" type="number" min="0" max="10"></div>
+        <div><label>Sat</label><input id="rpe_sat" type="number" min="0" max="10"></div>
+        <div><label>Sun</label><input id="rpe_sun" type="number" min="0" max="10"></div>
+      </div>
+      <button class="btn" onclick="saveRPE()">Save week</button>
+      <p class="small" id="rpesummary"></p>
+    </section>
+
+    <!-- READINESS CHECK -->
+    <section class="card">
+      <div class="section-title">
+        <h3>Readiness Check</h3>
+        <span class="badge">Assess</span>
+      </div>
+      <div class="grid">
+        <div><label>Sleep last night (hours)</label><input id="sleep" type="number" step=".5" placeholder="e.g., 7.5"></div>
+        <div><label>Muscle soreness (1–10)</label><input id="soreness" type="number" min="1" max="10"></div>
+        <div><label>Mood (1–5)</label><input id="mood" type="number" min="1" max="5"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn" onclick="calcReadiness()">Calculate readiness</button>
+      </div>
+      <p>Result: <span id="readiness" class="status">—</span></p>
+      <div style="margin-top:20px;">
+        <img alt="Fitness training battle ropes" src="https://i.postimg.cc/C1XzCgy1/b6784bca-0b04-4aa9-a2d1-29f226009622.png" />
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <small class="muted">© 2025 – GAA Training & Recovery Planner | Data stored locally in your browser.</small>
+  </footer>
+
+  <script>
+    // Helpers
+    const $ = (id) => document.getElementById(id);
+    const n = v => (isNaN(v)||v===""?0:parseFloat(v));
+
+    // THEME: Dark mode toggle with persistence
+    const themeBtn = $('themeBtn');
+    function applyTheme(t){
+      document.documentElement.setAttribute('data-theme', t);
+      themeBtn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
+    }
+    (function initTheme(){
+      const t = localStorage.getItem('theme') || 'light';
+      applyTheme(t);
+      themeBtn.addEventListener('click', ()=>{
+        const cur = document.documentElement.getAttribute('data-theme');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('theme', next);
+        applyTheme(next);
+      });
+    })();
+
+    // PROFILE: Save, load, and BMI
+    function updateBMI(){
+      const cm = n($('p_height').value);
+      const kg = n($('p_weight').value);
+      if(cm>0 && kg>0){
+        const m = cm/100;
+        const bmi = kg/(m*m);
+        let cat = '';
+        if (bmi < 18.5) cat = 'Underweight';
+        else if (bmi < 25) cat = 'Normal';
+        else if (bmi < 30) cat = 'Overweight';
+        else cat = 'Obesity';
+        $('bmi_out').textContent = `BMI: ${bmi.toFixed(1)} (${cat})`;
+      } else {
+        $('bmi_out').textContent = '';
+      }
+    }
+    function saveProfile(){
+      ['p_name','p_sex','p_height','p_weight'].forEach(id => localStorage.setItem(id, $(id).value));
+      $('profilesaved').textContent = 'Profile saved ✔';
+      setTimeout(()=> $('profilesaved').textContent = '', 2000);
+      updateBMI();
+    }
+    // Prefill profile
+    (function initProfile(){
+      ['p_name','p_sex','p_height','p_weight'].forEach(id => {
+        const v = localStorage.getItem(id);
+        if(v !== null) $(id).value = v;
+      });
+      $('saveProfileBtn').addEventListener('click', saveProfile);
+      ['p_height','p_weight'].forEach(id => $(id).addEventListener('input', updateBMI));
+      updateBMI();
+    })();
+
+    // Planner save
+    function savePlan(){
+      localStorage.setItem('tue',$('tue').value);
+      localStorage.setItem('thu',$('thu').value);
+      localStorage.setItem('sun',$('sun').value);
+      localStorage.setItem('custom',$('custom').value);
+      $('plansaved').textContent="Plan saved ✔";
+      setTimeout(()=>$('plansaved').textContent="",2000);
+    }
+
+    // RPE save + summary
+    function saveRPE(){
+      let total=0,count=0;
+      ['mon','tue','wed','thu','fri','sat','sun'].forEach(d=>{
+        const el = $('rpe_'+d);
+        const val = n(el.value);
+        localStorage.setItem('rpe_'+d, el.value);
+        if(!isNaN(val)){total+=val;count++;}
+      });
+      const avg=count?(total/count).toFixed(1):"—";
+      $('rpesummary').textContent=`Average RPE: ${avg}${count? ' ('+count+' days)' : ''}`;
+    }
+
+    // Prefill planner & RPE from localStorage on load
+    (function preload(){
+      ['tue','thu','sun','custom'].forEach(id => {
+        const v = localStorage.getItem(id);
+        if(v !== null) $(id).value = v;
+      });
+      ['mon','tue','wed','thu','fri','sat','sun'].forEach(d => {
+        const v = localStorage.getItem('rpe_'+d);
+        if(v !== null) $('rpe_'+d).value = v;
+      });
+    })();
+
+    // Readiness
+    function calcReadiness(){
+      const s=n($('sleep').value);
+      const sore=n($('soreness').value);
+      const mood=n($('mood').value);
+      const score=Math.max(0,Math.min(100,Math.round((s/8*40)+((mood-1)/4*30)-((sore-1)/9*30)))));
+      const out=$('readiness');
+      if(score>=60){out.textContent=`Ready (${score})`;out.className='status ok';}
+      else{out.textContent=`Caution (${score})`;out.className='status warn';}
+    }
+
+    // EXPORT: create a CSV of profile, plan, RPE, readiness
+    function exportCSV(){
+      const today = new Date().toISOString().slice(0,10);
+      const data = [];
+      data.push(['Date', today]);
+
+      // Profile
+      data.push(['Profile', 'Name', localStorage.getItem('p_name') || $('p_name').value || '',
+                           'Sex', localStorage.getItem('p_sex') || $('p_sex').value || '',
+                           'Height_cm', localStorage.getItem('p_height') || $('p_height').value || '',
+                           'Weight_kg', localStorage.getItem('p_weight') || $('p_weight').value || '',
+                           'BMI', (function(){ 
+                              const cm = n(localStorage.getItem('p_height') || $('p_height').value);
+                              const kg = n(localStorage.getItem('p_weight') || $('p_weight').value);
+                              if(cm>0 && kg>0){ const m=cm/100; return (kg/(m*m)).toFixed(1); } else { return ''; }
+                           })()
+      ]);
+
+      // Planner
+      data.push(['Planner','Tue', localStorage.getItem('tue') || $('tue').value || '',
+                           'Thu', localStorage.getItem('thu') || $('thu').value || '',
+                           'Sun', localStorage.getItem('sun') || $('sun').value || '',
+                           'Custom', localStorage.getItem('custom') || $('custom').value || '']);
+
+      // RPE
+      data.push(['RPE','Mon', localStorage.getItem('rpe_mon') || $('rpe_mon').value || '',
+                       'Tue', localStorage.getItem('rpe_tue') || $('rpe_tue').value || '',
+                       'Wed', localStorage.getItem('rpe_wed') || $('rpe_wed').value || '',
+                       'Thu', localStorage.getItem('rpe_thu') || $('rpe_thu').value || '',
+                       'Fri', localStorage.getItem('rpe_fri') || $('rpe_fri').value || '',
+                       'Sat', localStorage.getItem('rpe_sat') || $('rpe_sat').value || '',
+                       'Sun', localStorage.getItem('rpe_sun') || $('rpe_sun').value || '']);
+
+      // Readiness
+      const ready = ($('readiness').textContent || '—').trim();
+      data.push(['Readiness', ready]);
+
+      const csv = data.map(row => row.map(cell => {
+        const s = (cell===undefined || cell===null) ? '' : String(cell);
+        return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g,'""') + '"' : s;
+      }).join(',')).join('\n');
+
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gaa_week_${today}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=> URL.revokeObjectURL(url), 100);
+    }
+    document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
+    // RESET: clear all saved data (preserve theme preference)
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
+      if(!confirm('This will clear all saved data (profile, plan, RPE). Theme preference will be kept. Continue?')) return;
+      const theme = localStorage.getItem('theme') || 'light';
+      localStorage.clear();
+      localStorage.setItem('theme', theme);
+      location.reload();
+    });
+  </script>
+</body>
+</html>
